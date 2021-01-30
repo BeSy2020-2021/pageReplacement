@@ -5,13 +5,13 @@
 #include "timer.h"
 
 void timerEventHandler(void)
-/* The event Handler (aka ISR) of the timer event. 							
+/* The event Handler (aka ISR) of the timer event.
 	Updates the data structures used by the page replacement algorithm 		*/
 
 {
 	logGeneric("Processing Timer Event Handler: resetting R-Bits");
 	/*	da jeder Prozess einen usedFrameList besitzt: durch alle laufende Prozessen und deren
-		usedFrameList iterieren. falls eine Seite während eines Timer-intervals referenziert wurde, 
+		usedFrameList iterieren. falls eine Seite während eines Timer-intervals referenziert wurde,
 		dann wird die Linkste Bit der Aging Wert der Seite Bitfolge auf 1 gesetzt
 		andernfalls verschiebt jeder Bit der Aging Wert eine Stelle rechts		*/
 	for (unsigned pid = 1; pid < MAX_PROCESSES; pid++)
@@ -27,3 +27,4 @@ void timerEventHandler(void)
 			}
 		}
 	}
+}

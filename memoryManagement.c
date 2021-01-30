@@ -9,11 +9,6 @@ frameList_t emptyFrameList = NULL;  // the beginning of EMPTY framelist
 frameListEntry_t *emptyFrameListTail = NULL; // end of the EMPTY frame list
 
 
-// THIS CAN BE REMOVED
-unsigned loadedFrameCounter;	// no of USED frames 
-usedFrameListEntry_t loadedFrameListTail = NULL; // end of the USED frame List
-
-
 /* ------------------------------------------------------------------------ */
 /*		               Declarations of local helper functions				*/
 
@@ -43,7 +38,7 @@ Boolean removeUsedFrame(int frameNo, unsigned page, unsigned pid);
 /* Auslagern der Frame, und zugehörigen info aus der Liste alle benutzten Rahmen */
 
 // THIS NEEDS TO TAKE IN PID SO IT CAN REFERENCE THE SAME PROCESS TABLE
-Boolean sortUsedFrameList();
+usedFrameList_t sortUsedFrameList();
 /*	Ein Hilsfuntkion zur Sortierung der usedFrameList eines Prozess, der wird		
 	bevor eine Seite verdrängt werden, aufgerufen, damit die erste Seite (die mit	
 	dem kleinsten Aging-wert) in der Liste verdrängt wurde							
@@ -273,7 +268,7 @@ Boolean removeUsedFrame(int frameNo, unsigned page, unsigned pid) {
 	return FALSE;	// Wenn der gesuchte Eintrag nicht gefunden ist,  FALSE zurückliefern
 }
 // hier list ist gleich der usedFrameList eines Prozesses, wird von der funktion pageReplacement übergeben
-Boolean sortUsedFrameList(const unsigned char point, usedFrameList_t list)
+usedFrameList_t sortUsedFrameList(const unsigned char point, usedFrameList_t list)
 /*	Diese Sortierung funktionert nach der Prinzip eines Radix sort, d.h:
 	es evaluiert jeder Aging Value nicht nach dem gesamten Wert sondern nach
 	der Wert jeder Bitstelle. Diese Sort ist rekursive und wird die Liste 
