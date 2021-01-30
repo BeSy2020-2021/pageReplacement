@@ -131,7 +131,7 @@ int accessPage(unsigned pid, action_t action)
 	updatePageEntry(pid, action);
 	return frame;
 }
-
+// so weit ich sehe, dem 躡erlauf ist vom grundlagige Umgebung schon da... ob das jetzt gel鰏t werden muss, k.a
 Boolean createPageTable(unsigned pid)
 /* Create and initialise the page table	for the given process				*/
 /* Information on max. process size must be already stored in the PCB		*/
@@ -238,7 +238,7 @@ Boolean storeUsedFrame(unsigned frameNo, unsigned page, unsigned pid) {
 		remove pointe to the page table entry corresponding to this frame, or otherwise store the pid and page no in the usedFrameList
 		entry and use that to further simplify other mehtods*/
 		newEntry->residentPage = &(processTable[pid].pageTable[page]);	// DIE FRAGE IST: REFERENZIEREN WIR AUF DIE GANZE SEITE
-		newEntry->age = processTable[pid].pageTable[page].agingVal;		// ODER SPEICHERN WIR DIE AGING VALUE AB? 
+		newEntry->age = &processTable[pid].pageTable[page].agingVal;		// ODER SPEICHERN WIR DIE AGING VALUE AB? 
 		if (frameList == NULL) {		// Spezialfall: noch keine Eintr鋑e in der Liste
 			frameList = newEntry;
 		}
@@ -280,7 +280,7 @@ usedFrameList_t sortUsedFrameList(const unsigned char point, usedFrameList_t lis
 	wird dieses Algorithmus nicht erkennen welche Rahmen erst in einem Timer-
 	Interval referenziert wurde.*/
 {
-	if (list == NULL || list->next == NULL) return TRUE; // spezialf鋖le: nur ein Eintrag in der Liste oder Liste ist leer
+	if (list == NULL || list->next == NULL) return list; // spezialf鋖le: nur ein Eintrag in der Liste oder Liste ist leer
 	// sublists OR buckets
 	usedFrameList_t zeroes = NULL;		//where LSB = 0, the LSB will shift one place right with each recursion e.g 񾷞00 0000 -> 0񾷞0 0000
 	usedFrameList_t zeroesLast = NULL;	// 
@@ -289,7 +289,7 @@ usedFrameList_t sortUsedFrameList(const unsigned char point, usedFrameList_t lis
 	usedFrameList_t iterator = list;
 	while (iterator != NULL) {
 		if ((iterator->residentPage->agingVal & point)) {
-			if (ones = NULL) {		// Erste eintrag der Sublist wo LMB = 1
+			if (ones == NULL) {		// Erste eintrag der Sublist wo LMB = 1
 				ones = iterator;
 				onesLast = iterator;
 			}
@@ -309,9 +309,9 @@ usedFrameList_t sortUsedFrameList(const unsigned char point, usedFrameList_t lis
 		}
 		iterator = iterator->next;
 	}
-	if (onesLast->next != NULL) { // sichern dass die Sublisten auf Null endet
-		onesLast->next = NULL;
-	}
+	if (onesLast->next != NULL) {	// sichern dass die Sublisten auf Null endet
+		onesLast->next = NULL;		// hier wird's Warnungen gegeben. da onesLast und zeroesLast immer auf NULL zeigen sollten. 
+	}								// kann eig. ausgelassen, aber f黵 die Sicherheit
 	if (zeroesLast->next != NULL) {
 		zeroesLast->next = NULL;
 	}
