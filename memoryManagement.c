@@ -38,7 +38,7 @@ Boolean removeUsedFrame(int frameNo, unsigned page, unsigned pid);
 /* Auslagern der Frame, und zugeh鰎igen info aus der Liste alle benutzten Rahmen */
 
 // THIS NEEDS TO TAKE IN PID SO IT CAN REFERENCE THE SAME PROCESS TABLE
-usedFrameList_t sortUsedFrameList();
+usedFrameList_t sortUsedFrameList(unsigned const char point, usedFrameList_t list);
 /*	Ein Hilsfuntkion zur Sortierung der usedFrameList eines Prozess, der wird		
 	bevor eine Seite verdr鋘gt werden, aufgerufen, damit die erste Seite (die mit	
 	dem kleinsten Aging-wert) in der Liste verdr鋘gt wurde							
@@ -95,7 +95,7 @@ Boolean initMemoryManager(void)
 	// TODO: For each process, load a number of pages into frames,
 	// gute Startzahl 4 Rahmen pro Prozess!
 }
-
+// DUN BTW THIS NEEDS TO WORK IN TANDEM WITH UR PAGE REPLACEMENT FAM 
 int accessPage(unsigned pid, action_t action)
 /* handles the mapping from logical to physical address, i.e. performs the	*/
 /* task of the MMU and parts of the OS in a computer system					*/
@@ -224,12 +224,11 @@ int getEmptyFrame(void)
 }
 
 
-// MUSS ANGEPASST WERDEN DAMIT ES AUF LISTE EIGENEN PROZESSEN FUNKTIONIERT
-/* */
+//IST ANGEPASST 
 Boolean storeUsedFrame(unsigned frameNo, unsigned page, unsigned pid) {
 	usedFrameList_t frameList = processTable[pid].usedFrames; 
-	usedFrameListEntry_t* newEntry = NULL;
-	newEntry = malloc(sizeof(usedFrameListEntry_t));	// create a new entry
+	usedFrameEntry_t* newEntry = NULL;
+	newEntry = malloc(sizeof(usedFrameEntry_t));	// create a new entry
 	if (newEntry != NULL) {		
 		newEntry->frame = frameNo;
 		newEntry->next = NULL;
@@ -246,6 +245,8 @@ Boolean storeUsedFrame(unsigned frameNo, unsigned page, unsigned pid) {
 			frameList->next = newEntry; // Normalerweise f黦t man neuen Eintrag am Ende der lokalen Liste
 		}
 	}
+	int a = newEntry->residentPage->agingVal;
+	printf("\tFrame stored in local list for process %d  with age %d\n", pid, a);
 	return (newEntry != NULL);
 }
 
@@ -261,10 +262,12 @@ Boolean removeUsedFrame(int frameNo, unsigned page, unsigned pid) {
 	while (iterator->next != NULL) {	// Normalverlauf: iterieren durch die Liste bis gesuchte Eintrag gefunden
 		if (iterator->next->frame == frameNo) {
 			iterator->next = iterator->next->next; // einbinden der vom Ziel Eintrag, mit der nach dem Ziel Eintrag
+			printf("\tFrame found, removing page %d of process %d from page %d\n", page, pid, frameNo);
 			return TRUE;
 		}
 		iterator = iterator->next;
 	}
+	printf("\tFrame %d containing page %d of Process %d not found\n", frameNo, page, pid);
 	return FALSE;	// Wenn der gesuchte Eintrag nicht gefunden ist,  FALSE zur點kliefern
 }
 // hier list ist gleich der usedFrameList eines Prozesses, wird von der funktion pageReplacement 黚ergeben
@@ -280,7 +283,11 @@ usedFrameList_t sortUsedFrameList(const unsigned char point, usedFrameList_t lis
 	wird dieses Algorithmus nicht erkennen welche Rahmen erst in einem Timer-
 	Interval referenziert wurde.*/
 {
-	if (list == NULL || list->next == NULL) return list; // spezialf鋖le: nur ein Eintrag in der Liste oder Liste ist leer
+	printf("\tSorting... \n");
+	if (list == NULL || list->next == NULL) {
+		printf("\tThe list passed to the function is NULL... Returning Null\n");
+		return list;
+	}	// spezialf鋖le: nur ein Eintrag in der Liste oder Liste ist leer
 	// sublists OR buckets
 	usedFrameList_t zeroes = NULL;		//where LSB = 0, the LSB will shift one place right with each recursion e.g 񾷞00 0000 -> 0񾷞0 0000
 	usedFrameList_t zeroesLast = NULL;	// 
@@ -355,6 +362,7 @@ Boolean movePageIn(unsigned pid, unsigned page, unsigned frame)
 	processTable[pid].pageTable[page].modified = FALSE;
 	processTable[pid].pageTable[page].referenced = FALSE;
 	processTable[pid].pageTable[page].agingVal &= 0x80;	// set left most r bit to 1
+	
 	// append the new frame to the list 
 	storeUsedFrame(frame, page, pid);	// stores the newly loaded page in the used frame list
 	// Statistics for advanced replacement algorithms need to be reset here also 
@@ -406,55 +414,64 @@ Boolean updatePageEntry(unsigned pid, action_t action)
 
 
 // ALL THIS DOES IS CALL RETURN THE FRAME TO BE REMOVED 
+// THIS STILL HAS NOT DONE WHAT ITS SUPPOSED TO DO!!!!!
 Boolean pageReplacement(unsigned *outPid, unsigned *outPage, int *outFrame)
 /* ===== The page replacement algorithm								======	*/
-/* In the initial implementation the frame to be cleared is chosen			*/
-/* globaly and randomly, i.e. a frame is chosen at random regardless of the	*/
-/* process that is currently usigt it.										*/
-/* The values of pid and page number passed to the function may be used by  */
-/* local replacement strategies */
+/*	In the initial implementation the frame to be cleared is chosen			
+	globaly and randomly, i.e. a frame is chosen at random regardless of the	
+	process that is currently usigt it.										
+	The values of pid and page number passed to the function may be used by  
+	local replacement strategies */
 /* OUTPUT: */
-/* The frame number, the process ID and the page currently assigned to the	*/
-/* frame that was chosen by this function as the candidate that is to be	*/
-/* moved out and replaced by another page is returned via the call-by-		*/
-/* reference parameters.													*/
-/* Returns TRUE on success and FALSE on any error							*/
+/*	The frame number, the process ID and the page currently assigned to the	
+	frame that was chosen by this function as the candidate that is to be	
+	moved out and replaced by another page is returned via the call-by-		
+	reference parameters.													
+	Returns TRUE on success and FALSE on any error							*/
 {
 	Boolean found = FALSE;		// flag to indicate success
 	// just for readbility local copies ot the passed values are used:
 	unsigned pid = (*outPid); 
 	unsigned page = (*outPage);
 	int frame = *outFrame; 
-	
-	// +++++ START OF REPLACEMENT ALGORITHM IMPLEMENTATION: GLOBAL RANDOM ++++
-	logGeneric("MEM: Choosing a frame randomly, this must be improved");
-	// frame = rand() % MEMORYSIZE; choses a frame by random -> outFrame should be found via rbits
-	/* TO CHANGE:
-	// As the initial implemetation does not have data structures that allows
-	// easy retrieval of the identity of a page residing in a given frame, 
-	// now the frame ist searched for in all page tables of all running processes
-	// I.e.: Iterate through the process table and for each valid PCB check 
-	// the valid entries in its page table until the frame is found 
-	*/ 
-	// GLOBAL VER:
-	// Iterate throught the process table and for each valid PCB check ALL valid
-	// page entries till completion, choosing the page with the lowest Rbit amongst
-	// all pages and processes (WARNING: very slow possibly O(n�)) A data struct is needed
-	// to manage loaded frames and their corresponding pages and processes
-	pid = 0; page = 0; 
-	do 
-	{
-		pid++;
-		if ((processTable[pid].valid) && (processTable[pid].pageTable != NULL))
-			for (page = 0; page < processTable[pid].size; page++)
-				if (processTable[pid].pageTable[page].frame == frame) {
-					found = TRUE;
-					break;
-				}
-	} while ((!found) && (pid < MAX_PROCESSES));
-	// +++++ END OF REPLACEMENT ALFGORITHM found indicates success/failure
-	// RESULT is pid, page, frame
 
+	printf("\tCalling sort for the pages of process %d\n", pid);
+	usedFrameList_t list = processTable[pid].usedFrames; // pass the list of locally used frames REE THIS PID ISNT THE PID OF THE PROCESS TO BE REMOVED!!
+
+	if (list == NULL) // falls der Prozess noch keinen Seiten im Speicher hat
+	{
+		printf("\tusedFrameList empty, Process must not yet have frames assigned...\n");
+		logGeneric("MEM: Choosing a frame randomly, this must be improved");
+		frame = rand() % MEMORYSIZE; // choses a frame by random -> outFrame should be found via rbits
+		pid = 0; page = 0;
+		do
+		{
+			pid++;
+			if ((processTable[pid].valid) && (processTable[pid].pageTable != NULL))
+				for (page = 0; page < processTable[pid].size; page++)
+					if (processTable[pid].pageTable[page].frame == frame) {
+						found = TRUE;
+						break;
+					}
+		} while ((!found) && (pid < MAX_PROCESSES));
+		return found;
+	}
+
+	sortUsedFrameList(0x80, list); // sort the list of used frames of the process
+	
+	/*	die pid gerade gegeben ist die PID die Prozess der auf seine Seite referernzieren
+		problem dabei ist, dass wir die SEITE verdr鋘gen muss, die noch nicht eingelagert sind 
+		(ODER)
+		wir sichern dass bei initiialisierung, alle Prozessen etwas bekommt. d.h. aber wenn neuer
+		User Process erstellt wird, demselbene Problem aufgetreten wurde
+		(IDEE)
+		NOCH EINE LISTE:
+		Die 黚er die Info alle eingelagerten Seiten im Speicher kennt
+		dann wird nach bedarf dieses Sortiert und seite verdr鋘gt....*/
+	
+	
+	
+	
 	// prepare returning the resolved location for replacement
 	if (found)
 	{	// assign the current values to the call-by-reference parameters

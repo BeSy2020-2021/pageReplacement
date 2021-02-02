@@ -45,6 +45,17 @@ typedef struct simInfo_struct
 
 
 
+
+/* Liste, die alle Prozessen enthält*/
+typedef struct threshListEntry {
+	pid_t pid;
+	struct threshListEntry* next;
+} threshList_t; 
+
+threshList_t* lowThresh; // Liste für Prozessen die unter eine untere Schränke an Seitenfehlerrate liegt
+threshList_t* backupThresh; // eine Kopie der Liste für Prozessen die unter eine untere Schränke an Seitenfehlerrate lieget
+threshList_t* highThresh; // Liste für Prozessen die über eine obere Schänke an Seitenfehlerrate liegt
+
 /* data type for a page table entry, the page table is an array of this element type*/
 /* this data type represents the information held by a page*/
 typedef struct pageTableEntry_struct
@@ -61,15 +72,15 @@ typedef struct pageTableEntry_struct
 // Geschrieben von Yi Cherng Cheang # 07.01.21 //
 /* Datentyp für einlagerung und Kontrolle eingelagerten Seiten		*/
 /* Unsortierte verketete Liste die für jeden Prozess verfügbar ist	*/
-typedef struct usedFrameListEntry_Struct
+typedef struct usedFrameStruct
 {
 	int frame;		// Frame no.
 	page_t* residentPage;		// pointer to page entry, holding all relative info including frame no, rbit and page no
-	unsigned char* age;			// statt durch das pageTableEntry durchzugehen, einfach der Aging wert hier abspeichern
-	struct usedFrameListEntry_Struct* next;	// zeiger fürs Iterieren der Liste	
-}usedFrameListEntry_t;
+	unsigned char* age;			// statt durch das pageTableEntry durchzugehen, einfach der Aging wert hier abspeichern KEEP? OR THROW?
+	struct usedFrameStruct* next;	// zeiger fürs Iterieren der Liste	
+}usedFrameEntry_t;
 
-typedef usedFrameListEntry_t* usedFrameList_t; // points to the list of USED frames
+typedef usedFrameEntry_t* usedFrameList_t; // points to the list of USED frames
 
 
 /* data type for the Process Control Block */
