@@ -64,6 +64,7 @@ Boolean coreLoop(void)
 			printf("%6u : PID %3u : Started\n", systemTime, pMemoryEvent->pid);
 			// allocate the initial number of frames for the process
 			createPageTable(pMemoryEvent->pid);
+			allocateOnStart(4, pMemoryEvent->pid); // 4 frames here could be a global variable instead, that we can later change 
 			break;
 		case end:
 			printf("%6u : PID %3u : Terminated\n", systemTime, pMemoryEvent->pid);

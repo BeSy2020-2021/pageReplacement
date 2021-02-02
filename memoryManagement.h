@@ -31,5 +31,8 @@ Boolean deAllocateProcess(unsigned pid);
 /* free the physical memory used by a process, destroy the page table		*/
 /* returns TRUE on success, FALSE on error									*/
 
+Boolean allocateOnStart(const int initFrames, unsigned pid);
+/* Function to allocate a certain amount of Frames to a process when it starts*/
+
 
 #endif  /* __MEMORY_MANAGEMENT__ */ 

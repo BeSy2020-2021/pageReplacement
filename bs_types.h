@@ -60,7 +60,7 @@ typedef struct pageTableEntry_struct
 	Boolean present;	// flag for checking if a page is loaded (in frame)
 	Boolean modified;	// flag stating a page has been written on/modified during some interval
 	Boolean referenced; // flag stating a page has been referenced during some interval -> causes rbits to be set
-	unsigned char agingVal;		// R bit, durch 8 bit stellig Bitfolge vom Char repräsentiert 
+	unsigned char agingVal;		// Aging Wert, durch 8 bit stellig Bitfolge vom Char repräsentiert 
 	int frame;			// physical memory address, if present
 	int swapLocation;	// if page is not present, this indicates it's location in secondary memory
 						// as the content of the pages is not used in this simulation, it is unused
@@ -78,10 +78,7 @@ typedef struct frameListStruct
 	struct frameListStruct* next;	// zeiger fürs Iterieren der Liste
 } frameListEntry_t;
 
-typedef frameListEntry_t* frameList_t; // points to the list of EMPTY frames
-
-typedef frameListEntry_t* usedFrames_t;// points to the list of USED frames, local to a process
-
+typedef frameListEntry_t* frameList_t; // points to the list of frames
 
 /* data type for the Process Control Block */
 /* +++ this might need to be extended to support future features	+++ */
@@ -101,7 +98,7 @@ typedef struct PCB_struct
 	unsigned size;				// size of logical process memory in pages
 	page_t *pageTable;			// pointer to a page table entry of process with this pid
 
-	usedFrames_t usedFrames; // pointer to the head list of frames this process occupies	
+	frameList_t usedFrames; // pointer to the head list of frames this process occupies	
 
 	unsigned faultCount;		// counter der Seitenfehler dieses Prozess
 	Boolean overFaultCeil;		// flags to show the process has had many page faults in the last x intervals
