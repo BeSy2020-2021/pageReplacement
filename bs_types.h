@@ -43,10 +43,7 @@ typedef struct simInfo_struct
 	unsigned IOready;	// simulation time when IO is complete, may be used in the future
 } simInfo_t;
 
-
-
-
-/* Liste, die alle Prozessen enthält*/
+/* Liste, die Prozessen enthält*/
 typedef struct threshListEntry {
 	pid_t pid;
 	struct threshListEntry* next;
@@ -69,18 +66,21 @@ typedef struct pageTableEntry_struct
 						// as the content of the pages is not used in this simulation, it is unused
 } page_t;
 
-// Geschrieben von Yi Cherng Cheang # 07.01.21 //
-/* Datentyp für einlagerung und Kontrolle eingelagerten Seiten		*/
-/* Unsortierte verketete Liste die für jeden Prozess verfügbar ist	*/
-typedef struct usedFrameStruct
+/* list type used by the OS to keep track of the currently available frames	*/
+/* in physical memory. Used for allocating additional and freeing used		*/
+/* pyhsical memory for/by processes											*/
+typedef struct frameListStruct
 {
-	int frame;		// Frame no.
-	page_t* residentPage;		// pointer to page entry, holding all relative info including frame no, rbit and page no
-	unsigned char* age;			// statt durch das pageTableEntry durchzugehen, einfach der Aging wert hier abspeichern KEEP? OR THROW?
-	struct usedFrameStruct* next;	// zeiger fürs Iterieren der Liste	
-}usedFrameEntry_t;
+	int frame;						// Frame no.
+	Boolean used;					// flag indicating whether this frame is being used or not
+	page_t* residentPage;			// pointer to page entry, holding all relative info including frame no, rbit and page no
+	// unsigned char* age;			statt durch das pageTableEntry durchzugehen, einfach der Aging wert hier abspeichern KEEP? OR THROW?
+	struct frameListStruct* next;	// zeiger fürs Iterieren der Liste
+} frameListEntry_t;
 
-typedef usedFrameEntry_t* usedFrameList_t; // points to the list of USED frames
+typedef frameListEntry_t* frameList_t; // points to the list of EMPTY frames
+
+typedef frameListEntry_t* usedFrames_t;// points to the list of USED frames, local to a process
 
 
 /* data type for the Process Control Block */
@@ -99,10 +99,11 @@ typedef struct PCB_struct
 	status_t status;			/* NOT USED ANYWHERE DELETE BEFORE ABGABE*/
 	simInfo_t simInfo;			/* NOT USED ANYWHERE DELETE BEFORE ABGABE*/
 	unsigned size;				// size of logical process memory in pages
-	page_t *pageTable;// pointer to a page table entry of process with this pid
+	page_t *pageTable;			// pointer to a page table entry of process with this pid
 
-	usedFrameList_t usedFrames; // pointer to the head list of frames this process occupies	
+	usedFrames_t usedFrames; // pointer to the head list of frames this process occupies	
 
+	unsigned faultCount;		// counter der Seitenfehler dieses Prozess
 	Boolean overFaultCeil;		// flags to show the process has had many page faults in the last x intervals
 	Boolean underFaultFloor;	// flags to show the process has had very little page faults in the last x intervals
 
@@ -136,18 +137,6 @@ typedef struct event_struct
 	pid_t pid;
 	action_t action;
 } memoryEvent_t;
-
-/* list type used by the OS to keep track of the currently available frames	*/ 
-/* in physical memory. Used for allocating additional and freeing used		*/
-/* pyhsical memory for/by processes											*/
-typedef struct frameListEntry_struct
-{
-	int frame; 
-	struct frameListEntry_struct *next;
-} frameListEntry_t;
-
-typedef frameListEntry_t* frameList_t; // points to the list of EMPTY frames
-
 
 
 #endif  /* __BS_TYPES__ */ 

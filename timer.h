@@ -13,7 +13,9 @@ void timerEventHandler(void);
 /* Will be triggered by the simulation environment periodically based on	*/
 /* the period given by TIMER_INTERVAL (see global.h)						*/
 
-
+//void timerFaultUpdate(void);
+/*	wird jeder 30 Zeiteinheiten ausgeführt, um die Seitenfehlerrate eines Prozess
+	*/
 
 /* ----------------------------------------------------------------	*/
 /* Define global variables that will be visible in all sourcefiles	*/

@@ -38,7 +38,7 @@ Boolean removeUsedFrame(int frameNo, unsigned page, unsigned pid);
 /* Auslagern der Frame, und zugeh鰎igen info aus der Liste alle benutzten Rahmen */
 
 // THIS NEEDS TO TAKE IN PID SO IT CAN REFERENCE THE SAME PROCESS TABLE
-usedFrameList_t sortUsedFrameList(unsigned const char point, usedFrameList_t list);
+usedFrames_t sortUsedFrameList(unsigned const char point, usedFrames_t list);
 /*	Ein Hilsfuntkion zur Sortierung der usedFrameList eines Prozess, der wird		
 	bevor eine Seite verdr鋘gt werden, aufgerufen, damit die erste Seite (die mit	
 	dem kleinsten Aging-wert) in der Liste verdr鋘gt wurde							
@@ -115,6 +115,7 @@ int accessPage(unsigned pid, action_t action)
 	{// no: page is not present
 		logPid(pid, "Pagefault");
 		// check for an empty frame
+		processTable[pid].faultCount++;		// inkrementiert den Counter an Seitenfehler
 		frame = getEmptyFrame();
 		if (frame < 0)
 		{	// no empty frame available: start replacement algorithm to find candidate frame
@@ -226,9 +227,9 @@ int getEmptyFrame(void)
 
 //IST ANGEPASST 
 Boolean storeUsedFrame(unsigned frameNo, unsigned page, unsigned pid) {
-	usedFrameList_t frameList = processTable[pid].usedFrames; 
-	usedFrameEntry_t* newEntry = NULL;
-	newEntry = malloc(sizeof(usedFrameEntry_t));	// create a new entry
+	usedFrames_t frameList = processTable[pid].usedFrames; 
+	usedFrames_t newEntry = NULL;
+	newEntry = malloc(sizeof(usedFrames_t));	// create a new entry
 	if (newEntry != NULL) {		
 		newEntry->frame = frameNo;
 		newEntry->next = NULL;
@@ -237,7 +238,7 @@ Boolean storeUsedFrame(unsigned frameNo, unsigned page, unsigned pid) {
 		remove pointe to the page table entry corresponding to this frame, or otherwise store the pid and page no in the usedFrameList
 		entry and use that to further simplify other mehtods*/
 		newEntry->residentPage = &(processTable[pid].pageTable[page]);	// DIE FRAGE IST: REFERENZIEREN WIR AUF DIE GANZE SEITE
-		newEntry->age = &processTable[pid].pageTable[page].agingVal;		// ODER SPEICHERN WIR DIE AGING VALUE AB? 
+		// newEntry->age = &processTable[pid].pageTable[page].agingVal;		// ODER SPEICHERN WIR DIE AGING VALUE AB? 
 		if (frameList == NULL) {		// Spezialfall: noch keine Eintr鋑e in der Liste
 			frameList = newEntry;
 		}
@@ -245,15 +246,15 @@ Boolean storeUsedFrame(unsigned frameNo, unsigned page, unsigned pid) {
 			frameList->next = newEntry; // Normalerweise f黦t man neuen Eintrag am Ende der lokalen Liste
 		}
 	}
-	int a = newEntry->residentPage->agingVal;
-	printf("\tFrame stored in local list for process %d  with age %d\n", pid, a);
+
+	printf("\tFrame stored in local list for process %d\n", pid);
 	return (newEntry != NULL);
 }
 
 // MUSS ANGEPASST WERDEN DAMIT ES AUF LISTE EIGENEN PROZESSEN FUNKTIONIERT
 // page fault calls page replacement which evicts a frame with frameNo, then calls this function
 Boolean removeUsedFrame(int frameNo, unsigned page, unsigned pid) {
-	usedFrameList_t iterator = processTable[pid].usedFrames;
+	usedFrames_t iterator = processTable[pid].usedFrames;
 	if (iterator == NULL) return FALSE;
 	if (iterator->frame == frameNo) {	// Spezialfall: erste Eintrag der Liste ist die gesuchte usedFrameListEntry
 		processTable[pid].usedFrames = iterator->next;
@@ -271,7 +272,7 @@ Boolean removeUsedFrame(int frameNo, unsigned page, unsigned pid) {
 	return FALSE;	// Wenn der gesuchte Eintrag nicht gefunden ist,  FALSE zur點kliefern
 }
 // hier list ist gleich der usedFrameList eines Prozesses, wird von der funktion pageReplacement 黚ergeben
-usedFrameList_t sortUsedFrameList(const unsigned char point, usedFrameList_t list)
+usedFrames_t sortUsedFrameList(const unsigned char point, usedFrames_t list)
 /*	Diese Sortierung funktionert nach der Prinzip eines Radix sort, d.h:
 	es evaluiert jeder Aging Value nicht nach dem gesamten Wert sondern nach
 	der Wert jeder Bitstelle. Diese Sort ist rekursive und wird die Liste 
@@ -289,11 +290,11 @@ usedFrameList_t sortUsedFrameList(const unsigned char point, usedFrameList_t lis
 		return list;
 	}	// spezialf鋖le: nur ein Eintrag in der Liste oder Liste ist leer
 	// sublists OR buckets
-	usedFrameList_t zeroes = NULL;		//where LSB = 0, the LSB will shift one place right with each recursion e.g 񾷞00 0000 -> 0񾷞0 0000
-	usedFrameList_t zeroesLast = NULL;	// 
-	usedFrameList_t ones = NULL;		//
-	usedFrameList_t onesLast = NULL;	//
-	usedFrameList_t iterator = list;
+	usedFrames_t zeroes = NULL;		//where LSB = 0, the LSB will shift one place right with each recursion e.g 񾷞00 0000 -> 0񾷞0 0000
+	usedFrames_t zeroesLast = NULL;	// 
+	usedFrames_t ones = NULL;		//
+	usedFrames_t onesLast = NULL;	//
+	usedFrames_t iterator = list;
 	while (iterator != NULL) {
 		if ((iterator->residentPage->agingVal & point)) {
 			if (ones == NULL) {		// Erste eintrag der Sublist wo LMB = 1
@@ -323,8 +324,8 @@ usedFrameList_t sortUsedFrameList(const unsigned char point, usedFrameList_t lis
 		zeroesLast->next = NULL;
 	}
 	if (point >> 1) {   // Rekrusive aufruf der Funktion, wobei die N鋍hste Bitstelle 黚erpr黤t wird
-		usedFrameList_t lhs = sortUsedFrameList(point >> 1, zeroes);
-		usedFrameList_t rhs = sortUsedFrameList(point >> 1, ones);
+		usedFrames_t lhs = sortUsedFrameList(point >> 1, zeroes);
+		usedFrames_t rhs = sortUsedFrameList(point >> 1, ones);
 		if (lhs != NULL) {
 			iterator = lhs;
 			if (rhs == NULL) {
@@ -436,7 +437,7 @@ Boolean pageReplacement(unsigned *outPid, unsigned *outPage, int *outFrame)
 	int frame = *outFrame; 
 
 	printf("\tCalling sort for the pages of process %d\n", pid);
-	usedFrameList_t list = processTable[pid].usedFrames; // pass the list of locally used frames REE THIS PID ISNT THE PID OF THE PROCESS TO BE REMOVED!!
+	usedFrames_t list = processTable[pid].usedFrames; // pass the list of locally used frames REE THIS PID ISNT THE PID OF THE PROCESS TO BE REMOVED!!
 
 	if (list == NULL) // falls der Prozess noch keinen Seiten im Speicher hat
 	{

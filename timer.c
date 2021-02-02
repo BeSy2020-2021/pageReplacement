@@ -17,7 +17,7 @@ void timerEventHandler(void)
 	for (unsigned pid = 1; pid < MAX_PROCESSES; pid++)
 	{
 		if ((processTable[pid].valid) && (processTable[pid].pageTable != NULL)) { // checks for valid, intitialized process and page table
-			usedFrameList_t iterator = processTable[pid].usedFrames;
+			usedFrames_t iterator = processTable[pid].usedFrames;
 			while (iterator != NULL) {
 				iterator->residentPage->agingVal >>= 1;
 				if (iterator->residentPage->referenced) {
