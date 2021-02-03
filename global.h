@@ -35,10 +35,9 @@
 // Timer Interval for when frames should be deallocated or reallocated to a process
 #define REALLOC_INTERVAL 50
 
-// define the floor and ceiling for how many frames a process should have
-// definiert die untere und obere Schränke von Rahmen ein Prozess zugeordnet werden soll
-#define floorFramesPerProcess 4; // startwert kein unter Schrank 
-#define ceilingFramesPerProcess 8; // muss noch überlegt werden
+// define the ceiling and floor for number of page faults acceptable to a process 
+#define LOW_THRESH 5
+#define HIGH_THRESH 15
 
 /* ----------------------------------------------------------------	*/
 /* Define global variables that will be visible in all sourcefiles	*/

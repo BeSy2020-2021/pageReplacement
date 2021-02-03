@@ -46,13 +46,14 @@ typedef struct simInfo_struct
 /* Liste, die Prozessen enthält*/
 typedef struct threshListEntry {
 	pid_t pid;
-	unsigned pageFaultcount;
 	struct threshListEntry* next;
-} threshList_t; 
+} threshListEntry_t; 
 
-threshList_t* lowThresh; // Liste für Prozessen die unter eine untere Schränke an Seitenfehlerrate liegt
-threshList_t* backupThresh; // eine Kopie der Liste für Prozessen die unter eine untere Schränke an Seitenfehlerrate lieget
-threshList_t* highThresh; // Liste für Prozessen die über eine obere Schänke an Seitenfehlerrate liegt
+typedef threshListEntry_t* threshList_t;
+
+threshList_t lowThresh; // Liste für Prozessen die unter eine untere Schränke an Seitenfehlerrate liegt
+threshList_t backupThresh; // eine Kopie der Liste für Prozessen die unter eine untere Schränke an Seitenfehlerrate lieget
+threshList_t highThresh; // Liste für Prozessen die über eine obere Schänke an Seitenfehlerrate liegt
 
 /* data type for a page table entry, the page table is an array of this element type*/
 /* this data type represents the information held by a page*/

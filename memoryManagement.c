@@ -15,7 +15,9 @@ frameListEntry_t *emptyFrameListTail = NULL;	// end of the EMPTY frame list
 unsigned backupFrameCoutner;	// a counter to ensure there are always x amount of frames as backup
 frameList_t backupList = NULL;	
 
-
+unsigned lowThreshCounter;		// um größer der List zu ermittlen
+unsigned backupCounter;
+unsigned highThreshCounter;
 
 /* ------------------------------------------------------------------------ */
 /*		               Declarations of local helper functions				*/
@@ -88,12 +90,15 @@ Boolean pageReplacement(unsigned *pid, unsigned *page, int *frame);
 	reference parameters.													
 	Returns TRUE on success and FALSE on any error							*/
 
-// sortiert durch threshListen aller Prozessen
-threshList_t sortThresh(threshList_t list);
-// stattdessen... 
-// wir 
+// sortiert durch threshListen 
+/*threshList_t sortThresh(threshList_t list);*/
+
+
+// 
 Boolean addToThreshList(int pid, threshList_t list);
-// und behalte den List sortiert
+// 
+Boolean removeFromThreshList(int pid, threshList_t list, unsigned listsize);
+
 // function to reallocate frames from processes with unacceptably high page faults to those with low page faults
 Boolean reallocateMemory(int donorPid, int receiverPid, unsigned amount);
 // function to calculate how much memory a process with unacceptably high page faults should receive or donate
@@ -293,22 +298,23 @@ int getBackupFrame(void)
 
 
 Boolean storeUsedFrame(unsigned frameNo, unsigned page, unsigned pid) {
-	frameList_t frameList = processTable[pid].usedFrames; 
+	frameList_t frameList = processTable[pid].usedFrames;	// a copy of the pointer we use to access the local usedFrameList
 	frameList_t newEntry = NULL;
-	newEntry = malloc(sizeof(frameList_t));	// create a new entry
-	if (newEntry != NULL) {		
-		newEntry->frame = frameNo;
+	newEntry = malloc(sizeof(frameList_t));					// create a new list entry
+	if (newEntry != NULL) {									// and fill it with the relevant info
+		newEntry->frame = frameNo;	
 		newEntry->next = NULL;
-	
+		newEntry->used = TRUE;
 		newEntry->residentPage = &(processTable[pid].pageTable[page]);
 
-		if (frameList == NULL) {		// Spezialfall: noch keine Einträge in der Liste
+		if (frameList == NULL) {		// Special-case: this is the first entry of the usedFrameList
 			frameList = newEntry;
 		}
 		else {
-			frameList->next = newEntry; // Normalerweise fügt man neuen Eintrag am Ende der lokalen Liste
+			newEntry->next = frameList;					// newEntry will point to the old list as its next value, becoming the head
+			processTable[pid].usedFrames = newEntry;	// of the process' new list! i.e. Prepended
 		}
-	}
+	}	
 	printf("\tFrame stored in local list for process %d\n", pid);
 	return (newEntry != NULL);
 }
@@ -552,23 +558,71 @@ Boolean pageReplacement(unsigned* outPid, unsigned* outPage, int* outFrame)
 	}
 	return found;
 }
-
+	/*
 	threshList_t sortThresh(threshList_t list) {
-			
-	}
-	// stattdessen... 
-
-// wir 
-	Boolean addToThreshList(int pid, threshList_t list) {
+		
+	}*/
 	
+	// the parameter list one of 3 possible threshLists : lowThresh, highThresh or backUpThresh
+	// the respective counter of said list is also given via listsize: lowThreshCounter, and so on
+	Boolean addToThreshList(int pid, threshList_t list, unsigned* listsize) 
+{
+	if (pid <= 0 || pid > MAX_PROCESSES) return FALSE; 
+	threshList_t newEntry = malloc(sizeof(threshList_t)); // create a new list entry	
+	if (newEntry != NULL) {		
+		newEntry->pid = pid;	// set the pid of the new list entry
+		if (list == NULL) {		// special-case: list is empty
+			list = newEntry;	// point the list to teh new entry
+			*listsize += 1;			// add to the count of the given list 
+		}
+		else {					// normal-case: prepend the newEntry to the list
+			threshList_t copy = list; // create a copy which points to the old lis copy = ABCD new = P
+			newEntry->next = copy; // append the old list to the newEntry P->ABCD
+			list = newEntry;	// update the pointer to reference the updated ThreshList ABCD -> PABCD
+			*listsize += 1;
+		}
 	}
+	return TRUE;
 
+	// A B C -> 
+}
+	// the parameter list one of 3 possible threshLists : lowThresh, highThresh or backUpThresh
+	// the respective counter of said list is also given via listsize: lowThreshCounter, and so on
+	Boolean removeFromThreshList(int pid, threshList_t list, unsigned* listsize) 
+{
+	if (pid <= 0 || pid > MAX_PROCESSES) return FALSE;
+	int i = 0;
+	threshList_t iterator = list;		// a copy of the pointer to the given list which will be used as an iterator
+	while (i <= *listsize && iterator != NULL) {		// itreate throught the given list
+		if (iterator->pid == pid) {		// special-case: the first entry is the wanted entry
+			list = list->next;		// make next entry as the list's head
+			free(iterator);			// free memory allocated to the list entry
+			*listsize -= 1;
+			return TRUE;
+		}
+		else if (iterator->next->pid == pid) {			// when the correct entry is found
+			threshList_t toRemove = list->next;		// point to the entry to be removed
+			iterator->next = iterator->next->next;	// connect the prior and next entries
+			free(toRemove);							// free memory allocated to the list entry 
+			*listsize -= 1;
+			return TRUE;							// return true, ending the function
+		}
+		i++;
+	}
+	return FALSE; // if the list is iterated through, return false
+}
+	// process from lowThreshList donates frames to highThreshList
 	Boolean reallocateMemory(int donorPid, int receiverPid, unsigned amount) {
-	
+		
+		for (int i = 0; i < amount; i++) {
+			movePageOut(donorPid, , ); // wie bekommt man welche page und welche frame
+			movePageIn(receiverPid, ,);	
+		}
+		return TRUE;
 	}
 
 
 	unsigned calcMem(int pid) {
 
-
-}
+	
+	}
