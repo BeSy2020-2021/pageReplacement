@@ -27,9 +27,13 @@
 
 // name of the file with process definitions
 #define PROCESS_FILENAME "processes.txt"
+
 // name of the file with the simulation run an empty file name switches to random event stimulus
 #define RUN_FILENAME "run.txt"
 //#define RUN_FILENAME ""
+
+// Timer Interval for when frames should be deallocated or reallocated to a process
+#define REALLOC_INTERVAL 50
 
 // define the floor and ceiling for how many frames a process should have
 // definiert die untere und obere Schränke von Rahmen ein Prozess zugeordnet werden soll

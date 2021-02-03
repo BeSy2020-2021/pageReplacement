@@ -10,6 +10,7 @@
 unsigned emptyFrameCounter;						// number of empty Frames 
 frameList_t emptyFrameList = NULL;				// the beginning of EMPTY framelist
 frameListEntry_t *emptyFrameListTail = NULL;	// end of the EMPTY frame list
+
 /* list of backup frames, only to be used in desperation*/
 unsigned backupFrameCoutner;	// a counter to ensure there are always x amount of frames as backup
 frameList_t backupList = NULL;	
@@ -87,6 +88,16 @@ Boolean pageReplacement(unsigned *pid, unsigned *page, int *frame);
 	reference parameters.													
 	Returns TRUE on success and FALSE on any error							*/
 
+// sortiert durch threshListen aller Prozessen
+threshList_t sortThresh(threshList_t list);
+// stattdessen... 
+// wir 
+Boolean addToThreshList(int pid, threshList_t list);
+// und behalte den List sortiert
+// function to reallocate frames from processes with unacceptably high page faults to those with low page faults
+Boolean reallocateMemory(int donorPid, int receiverPid, unsigned amount);
+// function to calculate how much memory a process with unacceptably high page faults should receive or donate
+unsigned calcMem(int pid);
 
 /* ------------------------------------------------------------------------ */
 /*                Start of public Implementations							*/
@@ -479,25 +490,25 @@ Boolean updatePageEntry(unsigned pid, action_t action)
 
 // ALL THIS DOES IS CALL RETURN THE FRAME TO BE REMOVED 
 // THIS STILL HAS NOT DONE WHAT ITS SUPPOSED TO DO!!!!!
-Boolean pageReplacement(unsigned *outPid, unsigned *outPage, int *outFrame)
+Boolean pageReplacement(unsigned* outPid, unsigned* outPage, int* outFrame)
 /* ===== The page replacement algorithm								======	*/
-/*	In the initial implementation the frame to be cleared is chosen			
-	globaly and randomly, i.e. a frame is chosen at random regardless of the	
-	process that is currently usigt it.										
-	The values of pid and page number passed to the function may be used by  
+/*	In the initial implementation the frame to be cleared is chosen
+	globaly and randomly, i.e. a frame is chosen at random regardless of the
+	process that is currently usigt it.
+	The values of pid and page number passed to the function may be used by
 	local replacement strategies */
-/* OUTPUT: */
-/*	The frame number, the process ID and the page currently assigned to the	
-	frame that was chosen by this function as the candidate that is to be	
-	moved out and replaced by another page is returned via the call-by-		
-	reference parameters.													
-	Returns TRUE on success and FALSE on any error							*/
+	/* OUTPUT: */
+	/*	The frame number, the process ID and the page currently assigned to the
+		frame that was chosen by this function as the candidate that is to be
+		moved out and replaced by another page is returned via the call-by-
+		reference parameters.
+		Returns TRUE on success and FALSE on any error							*/
 {
 	Boolean found = FALSE;		// flag to indicate success
 	// just for readbility local copies ot the passed values are used:
-	unsigned pid = (*outPid); 
+	unsigned pid = (*outPid);
 	unsigned page = (*outPage);
-	int frame = *outFrame; 
+	int frame = *outFrame;
 
 	printf("\tCalling sort for the pages of process %d\n", pid);
 	frameList_t list = processTable[pid].usedFrames; // pass the list of locally used frames REE THIS PID ISNT THE PID OF THE PROCESS TO BE REMOVED!!
@@ -522,9 +533,9 @@ Boolean pageReplacement(unsigned *outPid, unsigned *outPage, int *outFrame)
 	}
 
 	sortUsedFrameList(0x80, list); // sort the list of used frames of the process
-	
+
 	/*	die pid gerade gegeben ist die PID die Prozess der auf seine Seite referernzieren
-		problem dabei ist, dass wir die SEITE verdrängen muss, die noch nicht eingelagert sind 
+		problem dabei ist, dass wir die SEITE verdrängen muss, die noch nicht eingelagert sind
 		(ODER)
 		wir sichern dass bei initiialisierung, alle Prozessen etwas bekommt. d.h. aber wenn neuer
 		User Process erstellt wird, demselbene Problem aufgetreten wurde
@@ -532,16 +543,32 @@ Boolean pageReplacement(unsigned *outPid, unsigned *outPage, int *outFrame)
 		NOCH EINE LISTE:
 		Die über die Info alle eingelagerten Seiten im Speicher kennt
 		dann wird nach bedarf dieses Sortiert und seite verdrängt....*/
-	
-	
-	
-	
-	// prepare returning the resolved location for replacement
+		// prepare returning the resolved location for replacement
 	if (found)
 	{	// assign the current values to the call-by-reference parameters
 		(*outPid) = pid;
-		(*outPage) = page; 
+		(*outPage) = page;
 		(*outFrame) = frame;
 	}
-	return found; 
+	return found;
+}
+
+	threshList_t sortThresh(threshList_t list) {
+			
+	}
+	// stattdessen... 
+
+// wir 
+	Boolean addToThreshList(int pid, threshList_t list) {
+	
+	}
+
+	Boolean reallocateMemory(int donorPid, int receiverPid, unsigned amount) {
+	
+	}
+
+
+	unsigned calcMem(int pid) {
+
+
 }

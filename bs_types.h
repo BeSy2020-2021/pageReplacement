@@ -46,6 +46,7 @@ typedef struct simInfo_struct
 /* Liste, die Prozessen enthält*/
 typedef struct threshListEntry {
 	pid_t pid;
+	unsigned pageFaultcount;
 	struct threshListEntry* next;
 } threshList_t; 
 
@@ -101,6 +102,8 @@ typedef struct PCB_struct
 	frameList_t usedFrames; // pointer to the head list of frames this process occupies	
 
 	unsigned faultCount;		// counter der Seitenfehler dieses Prozess
+	unsigned timeSince;			// time since last page fault
+
 	Boolean overFaultCeil;		// flags to show the process has had many page faults in the last x intervals
 	Boolean underFaultFloor;	// flags to show the process has had very little page faults in the last x intervals
 
