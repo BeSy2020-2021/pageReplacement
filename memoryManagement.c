@@ -94,15 +94,17 @@ Boolean pageReplacement(unsigned *pid, unsigned *page, int *frame);
 
 Boolean initMemoryManager(void)
 {
-	int i = 0;
-	while (i < MEMORYSIZE) {
+	logGeneric("Initializing memory manager...");
+	// mark all frames of the physical memory as empty 
+	for (int i = 0; i < MEMORYSIZE; i++) {
 		if (i < 4) storeBackupFrame(i);
-		storeEmptyFrame(i);
+		else storeEmptyFrame(i);
 	}
+	logGeneric("...initialized");
 	return TRUE;
 }
 
-// DUN BTW THIS NEEDS TO WORK IN TANDEM WITH UR PAGE REPLACEMENT FAM 
+
 int accessPage(unsigned pid, action_t action)
 /* handles the mapping from logical to physical address, i.e. performs the	
 	task of the MMU and parts of the OS in a computer system				
@@ -141,7 +143,6 @@ int accessPage(unsigned pid, action_t action)
 }
 
 
-// so weit ich sehe, dem Überlauf ist vom grundlagige Umgebung schon da... ob das jetzt gelöst werden muss, k.a
 Boolean createPageTable(unsigned pid)
 /* Create and initialise the page table	for the given process				*/
 /* Information on max. process size must be already stored in the PCB		*/
@@ -149,6 +150,7 @@ Boolean createPageTable(unsigned pid)
 {
 	page_t *pTable = NULL;
 	// create and initialise the page table of the process
+	printf("\tsize of process %d is %d\n", pid, processTable[pid].size);
 	pTable = malloc(processTable[pid].size * sizeof(page_t));		// creates an array of pages a process holds
 	if (pTable == NULL) return FALSE; 
 	// initialise the page table
@@ -196,27 +198,27 @@ Boolean storeEmptyFrame(int frame)
 /* Store the frame number in the data structure of empty frames				*/
 /* and update emptyFrameCounter												*/
 {
-	frameListEntry_t *newEntry = NULL;
-	newEntry = malloc(sizeof(frameListEntry_t)); 
+	frameListEntry_t* newEntry = NULL;
+	newEntry = malloc(sizeof(frameListEntry_t));
 	if (newEntry != NULL)
 	{
 		// create new entry for the frame passed
-		newEntry->next = NULL;			
+		newEntry->next = NULL;
 		newEntry->frame = frame;
-		newEntry->residentPage = NULL;
 		newEntry->used = FALSE;
+		newEntry->residentPage = NULL;
 		if (emptyFrameList == NULL)			// first entry in the list
 		{
 			emptyFrameList = newEntry;
 		}
-		else {								// appent do the list
+		else								// appent do the list
 			emptyFrameListTail->next = newEntry;
-			emptyFrameListTail = newEntry;
-			emptyFrameCounter++;				// one more free frame
-		}
+		emptyFrameListTail = newEntry;
+		emptyFrameCounter++;				// one more free frame
 	}
-	return (newEntry != NULL); 
+	return (newEntry != NULL);
 }
+
 
 int getEmptyFrame(void)
 /* Returns the frame number of an empty frame.								*/
@@ -273,7 +275,7 @@ int getBackupFrame(void)
 	// remove entry of that frame from the list
 	toBeDeleted = backupList;
 	backupList = backupList->next;
-	free(toBeDeleted);
+	free(toBeDeleted);						// instead of freeing call move page in
 	emptyFrameCounter--;					// one empty frame less
 	return emptyFrameNo;
 }
@@ -314,7 +316,6 @@ Boolean removeUsedFrame(int frameNo, unsigned page, unsigned pid) {
 			return TRUE;
 		}
 		iterator = iterator->next;
-		free()
 	}
 	printf("\tFrame %d containing page %d of Process %d not found\n", frameNo, page, pid);
 	return FALSE;	// Wenn der gesuchte Eintrag nicht gefunden ist,  FALSE zurückliefern
@@ -325,8 +326,8 @@ Boolean allocateOnStart(const int initFrames, unsigned pid)
 	TODO: What happends when there are < intiFrames free? 
 	TODO: Portected 4 free frames*/
 {
-	for (int i = 1; i <= initFrames; i++) {
-		int frame = getEmptyFrame;
+	for (int i = 0; i < initFrames; i++) {
+		int frame = getEmptyFrame();
 		movePageIn(pid, i, frame); 
 	}
 	return TRUE;
