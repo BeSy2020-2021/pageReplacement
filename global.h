@@ -30,9 +30,8 @@
 
 // name of the file with the simulation run an empty file name switches to random event stimulus
 #define RUN_FILENAME "run.txt"
-//#define RUN_FILENAME ""
 
-// define the ceiling and floor for number of page faults acceptable to a process 
+//	Grenzwerte für die dynamische Allokierung
 #define LOW_THRESH 5
 #define HIGH_THRESH 15
 
@@ -41,8 +40,6 @@
 extern unsigned int	maxPID;				// largest valid PID
 pcb_t processTable[MAX_PROCESSES + 1]; 	// the process table
 extern unsigned systemTime; 			// the current system time (up time)
-
-// usedFrameList_t loadedFrameList;	// weil jeder Prozess ihrem eigenem usedFrameList besitzt, dieser Deklaration kann raus -CYC
 
 
 /* ----------------------------------------------------------------	*/

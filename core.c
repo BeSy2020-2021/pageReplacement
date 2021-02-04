@@ -47,13 +47,12 @@ Boolean coreLoop(void)
 		pMemoryEvent = sim_ReadNextEvent(&memoryEvent);
 		if (pMemoryEvent == NULL) break;			// on error exit the simulation loop 
 		// advance time and run timer event handler if needed
-		// advance time and run timer event handler if needed
 		for (unsigned i = (systemTime / TIMER_INTERVAL); i < (pMemoryEvent->time / TIMER_INTERVAL); i++)
 		{
-			systemTime = (i+1) * TIMER_INTERVAL;  // 0 -> 50 -> 100 usw
+			systemTime = (i+1) * TIMER_INTERVAL;	//	0 -> 50 -> 100 usw.
 			timerEventHandler();
 		}
-		systemTime = pMemoryEvent->time;	// set new system time according to next event
+		systemTime = pMemoryEvent->time;	//	set new system time according to next event
 		
 		// process the event that is due now
 		switch (pMemoryEvent->action.op)
@@ -64,7 +63,7 @@ Boolean coreLoop(void)
 			createPageTable(pMemoryEvent->pid);
 			// initFrames proportional to process size?
 			// int proportion = framestogive();
-			allocateOnStart(4, pMemoryEvent->pid); // 4 frames here could be a global variable instead, that we can later change 
+			allocateOnStart(4, pMemoryEvent->pid); // Allokiert 4 Seiten zum Prozessstart
 			break;
 		case end:
 			printf("%6u : PID %3u : Terminated\n", systemTime, pMemoryEvent->pid);

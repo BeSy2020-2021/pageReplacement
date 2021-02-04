@@ -44,7 +44,6 @@ void logPidMemAccess(unsigned pid, action_t action)
 
 void logPidMemPhysical(unsigned pid, unsigned page, unsigned frame)
 {
-	// TODO make this represent a line-row pair for easier readaybility
 	printf("%6u : PID %3u : Resolving page %2u in frame %2u\n", 
 		systemTime, pid, page, frame);
 }

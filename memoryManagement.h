@@ -32,7 +32,7 @@ Boolean deAllocateProcess(unsigned pid);
 /* returns TRUE on success, FALSE on error									*/
 
 Boolean allocateOnStart(const int initFrames, unsigned pid);
-/* Function to allocate a certain amount of Frames to a process when it starts*/
+/* Allokiert eine bestimmte Anzahl an Rahmen für einen Prozess während des Prozessstarts*/
 
 
 

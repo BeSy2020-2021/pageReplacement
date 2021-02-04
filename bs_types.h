@@ -59,13 +59,12 @@ threshList_t highThresh; // Liste für Prozessen die über eine obere Schänke an S
 /* this data type represents the information held by a page*/
 typedef struct pageTableEntry_struct
 {
-	Boolean present;	// flag for checking if a page is loaded (in frame)
-	Boolean modified;	// flag stating a page has been written on/modified during some interval
-	Boolean referenced; // flag stating a page has been referenced during some interval -> causes rbits to be set
-	unsigned char agingVal;		// Aging Wert, durch 8 bit stellig Bitfolge vom Char repräsentiert 
-	int frame;			// physical memory address, if present
-	int swapLocation;	// if page is not present, this indicates it's location in secondary memory
-						// as the content of the pages is not used in this simulation, it is unused
+	Boolean present;	// Flag die markiert, ob die Seite im Hauptspeicher geladen wurde
+	Boolean modified;	// Flag die markiert ob eine Seite überschrieben/verändert wurde
+	Boolean referenced; // Flag die markiert ob eine Seite referenziert wurde
+	unsigned char agingVal;		// Aging Wert
+	int frame;			// Adresse im physikalischen Speicher (wenn present)
+	int swapLocation;	// Adresse im Sekundärspeicher (wenn nicht present)
 } page_t;
 
 /* list type used by the OS to keep track of the currently available frames	*/
@@ -73,11 +72,10 @@ typedef struct pageTableEntry_struct
 /* pyhsical memory for/by processes											*/
 typedef struct frameListStruct
 {
-	int frame;						// Frame no.
-	Boolean used;					// flag indicating whether this frame is being used or not
-	page_t* residentPage;			// pointer to page entry, holding all relative info including frame no, rbit and page no
-	// unsigned char* age;			statt durch das pageTableEntry durchzugehen, einfach der Aging wert hier abspeichern KEEP? OR THROW?
-	struct frameListStruct* next;	// zeiger fürs Iterieren der Liste
+	int frame;						
+	Boolean used;					//	markiert, ob der Rahmen in Benutzung ist
+	page_t* residentPage;
+	struct frameListStruct* next;	
 } frameListEntry_t;
 
 typedef frameListEntry_t* frameList_t; // points to the list of frames
@@ -87,23 +85,23 @@ typedef frameListEntry_t* frameList_t; // points to the list of frames
 /* +++ like additional schedulers or advanced memory management		+++ */
 typedef struct PCB_struct
 {
-	Boolean valid;				// flag for valid process
-	pid_t pid;					// process' id number
-	pid_t ppid;					// parent process' id number
+	Boolean valid;				
+	pid_t pid;					
+	pid_t ppid;					
 	unsigned ownerID;			
-	unsigned start;				// time of start -> can be used in some log function showing how long 
-	unsigned duration;			// time between start and termination
+	unsigned start;				//	Startzeitpunkt -> könnte für den log hilfreich sein
+	unsigned duration;			//	Zeit zwischen Start und Terminierung
 	unsigned usedCPU;			// 
 	processType_t type;			/* NOT USED ANYWHERE DELETE BEFORE ABGABE*/
 	status_t status;			/* NOT USED ANYWHERE DELETE BEFORE ABGABE*/
 	simInfo_t simInfo;			/* NOT USED ANYWHERE DELETE BEFORE ABGABE*/
 	unsigned size;				// size of logical process memory in pages
-	page_t *pageTable;			// pointer to a page table entry of process with this pid
+	page_t *pageTable;		
 
-	frameList_t usedFrames; // pointer to the head list of frames this process occupies	
+	frameList_t usedFrames;		// Zeigt zum head der zum Prozess gehörigen usedFrames Liste	
 
-	unsigned faultCount;		// counter der Seitenfehler dieses Prozess
-	unsigned timeSince;			// time since last page fault
+	unsigned faultCount;		//	zählt die Seitenfehler des Prozess
+	unsigned timeSince;			//	Zeit seit letztem Seitenfehler
 
 	Boolean overFaultCeil;		// flags to show the process has had many page faults in the last x intervals
 	Boolean underFaultFloor;	// flags to show the process has had very little page faults in the last x intervals
