@@ -14,17 +14,22 @@ void timerEventHandler(void)
 		usedFrameList iterieren. falls eine Seite während eines Timer-intervals referenziert wurde,
 		dann wird die Linkste Bit der Aging Wert der Seite Bitfolge auf 1 gesetzt
 		andernfalls verschiebt jeder Bit der Aging Wert eine Stelle rechts		*/
-	for (unsigned pid = 1; pid < MAX_PROCESSES; pid++)
+	for (unsigned pid = 1; pid < MAX_PROCESSES; pid++)	// iterating through the process table
 	{
-		if ((processTable[pid].valid) && (processTable[pid].pageTable != NULL)) { // checks for valid, intitialized process and page table
-			frameList_t iterator = processTable[pid].usedFrames;
-			while (iterator != NULL) {
-				iterator->residentPage->agingVal >>= 1;
-				if (iterator->residentPage->referenced) {
-					iterator->residentPage->agingVal |= 0x80;
+		if ((processTable[pid].valid) && (processTable[pid].pageTable != NULL)) // if the process is valid and has a page table
+		{
+			frameList_t iterator = processTable[pid].usedFrames; // iterate through its usedFrameList	
+			while (iterator != NULL)
+			{
+				iterator->residentPage->agingVal >> 1;	// shift the agingvalue's bits, one place left for each stored page 
+				if (iterator->residentPage->referenced)
+				{
+					iterator->residentPage->agingVal |= 0x80;	// if the page was referenced in the last interval set left most bit to 1
+					iterator->residentPage->referenced = FALSE; // and reset the Rbit
 				}
-				iterator++;
+				iterator = iterator->next;
 			}
 		}
 	}
+
 }

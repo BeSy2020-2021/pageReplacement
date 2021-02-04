@@ -16,7 +16,7 @@ unsigned backupFrameCoutner;	// a counter to ensure there are always x amount of
 frameList_t backupList = NULL;	
 
 unsigned lowThreshCounter;		// um größer der List zu ermittlen
-unsigned backupCounter;
+unsigned backupCounter;			
 unsigned highThreshCounter;
 
 /* ------------------------------------------------------------------------ */
@@ -90,19 +90,7 @@ Boolean pageReplacement(unsigned *pid, unsigned *page, int *frame);
 	reference parameters.													
 	Returns TRUE on success and FALSE on any error							*/
 
-// sortiert durch threshListen 
-/*threshList_t sortThresh(threshList_t list);*/
 
-
-// 
-Boolean addToThreshList(int pid, threshList_t list);
-// 
-Boolean removeFromThreshList(int pid, threshList_t list, unsigned listsize);
-
-// function to reallocate frames from processes with unacceptably high page faults to those with low page faults
-Boolean reallocateMemory(int donorPid, int receiverPid, unsigned amount);
-// function to calculate how much memory a process with unacceptably high page faults should receive or donate
-unsigned calcMem(int pid);
 
 /* ------------------------------------------------------------------------ */
 /*                Start of public Implementations							*/
@@ -110,13 +98,13 @@ unsigned calcMem(int pid);
 
 Boolean initMemoryManager(void)
 {
-	logGeneric("Initializing memory manager...");
+	printf("Initializing memory manager...");
 	// mark all frames of the physical memory as empty 
 	for (int i = 0; i < MEMORYSIZE; i++) {
 		if (i < 4) storeBackupFrame(i);
 		else storeEmptyFrame(i);
 	}
-	logGeneric("...initialized");
+	printf("...initialized");
 	return TRUE;
 }
 
@@ -134,23 +122,17 @@ int accessPage(unsigned pid, action_t action)
 	if (isPagePresent(pid, action.page))
 	{// yes: page is present
 		// look up frame in page table and we are done
+		printf("\t page present in memory, fetching...\n");
 		frame = processTable[pid].pageTable[action.page].frame;
 	}
 	else
 	{// no: page is not present
 		logPid(pid, "Pagefault");
 		// check for an empty frame
-		processTable[pid].faultCount++;		// inkrementiert den Counter an Seitenfehler
-		frame = getEmptyFrame();
-		if (frame < 0)
-		{	// no empty frame available: start replacement algorithm to find candidate frame
-			logPid(pid, "No empty frame found, running replacement algorithm");
-			pageReplacement(&outPid, &outPage, &frame);
-			// move candidate frame out to secondary storage
-			movePageOut(outPid, outPage, frame);			
-			frame = getEmptyFrame();
-		} // now we have an empty frame to move the page into
-		// move page in to empty frame
+		logPid(pid, "Running replacement algorithm");
+		pageReplacement(&outPid, &outPage, &frame);
+		// move candidate frame out to secondary storage
+		movePageOut(outPid, outPage, frame);
 		movePageIn(pid, action.page, frame);
 	}
 	// update page table for replacement algorithm
@@ -166,13 +148,13 @@ Boolean createPageTable(unsigned pid)
 {
 	page_t *pTable = NULL;
 	// create and initialise the page table of the process
-	printf("\tsize of process %d is %d\n", pid, processTable[pid].size);
+	printf("\initializing process Table of process %d size %d pages\n", pid, processTable[pid].size);
 	pTable = malloc(processTable[pid].size * sizeof(page_t));		// creates an array of pages a process holds
 	if (pTable == NULL) return FALSE; 
 	// initialise the page table
 	for (unsigned i = 0; i < processTable[pid].size; i++)
 	{
-		pTable[i].present = FALSE;		// indicates that Page is not stored in memory
+		pTable[i].present = FALSE;		// indicates that Page is not stored in 
 		pTable[i].frame = -1;
 		pTable[i].swapLocation = -1;
 	}
@@ -200,6 +182,27 @@ Boolean deAllocateProcess(unsigned pid)
 	free(processTable[pid].pageTable);	// free the memory of the page table
 	return TRUE;
 }
+
+Boolean allocateOnStart(const int initFrames, unsigned pid)
+/*	Allocates a proportional amount of frames to a process
+	TODO: What happends when there are < ttlFrames free? 
+		loop: free one frame from the backup list, if the total is not enough free another, until backup is empty
+		if backup is empty and still not enough frames, kill the waiting process
+	process*/
+{
+	int fraction = processTable[pid].size * 0.2; // 20% of the size will be added to the initial value of 4 frames
+	int ttlFrame = initFrames + fraction; 
+	if (ttlFrame > emptyFrameCounter) {
+		return FALSE;
+		printf("Speicher nicht genug, prozess %d wird nicht gestartet", pid);
+	}
+	for (int i = 0; i < ttlFrame; i++) {
+		int frame = getEmptyFrame();
+		movePageIn(pid, i, frame);
+	}
+	return TRUE;
+}
+
 
 /* ---------------------------------------------------------------- */
 /*                Implementation of local helper functions          */
@@ -234,7 +237,6 @@ Boolean storeEmptyFrame(int frame)
 	}
 	return (newEntry != NULL);
 }
-
 
 int getEmptyFrame(void)
 /* Returns the frame number of an empty frame.								*/
@@ -296,26 +298,26 @@ int getBackupFrame(void)
 	return emptyFrameNo;
 }
 
-
 Boolean storeUsedFrame(unsigned frameNo, unsigned page, unsigned pid) {
+	printf("\tStoring page in ussedFrameList of process %d...\n", pid);
 	frameList_t frameList = processTable[pid].usedFrames;	// a copy of the pointer we use to access the local usedFrameList
 	frameList_t newEntry = NULL;
 	newEntry = malloc(sizeof(frameList_t));					// create a new list entry
 	if (newEntry != NULL) {									// and fill it with the relevant info
 		newEntry->frame = frameNo;	
 		newEntry->next = NULL;
-		newEntry->used = TRUE;
+		newEntry->used = TRUE; // brauche ich das?
 		newEntry->residentPage = &(processTable[pid].pageTable[page]);
-
 		if (frameList == NULL) {		// Special-case: this is the first entry of the usedFrameList
-			frameList = newEntry;
+			printf("\tList empty, creating new list\n");
+			processTable[pid].usedFrames = newEntry;
 		}
 		else {
+			printf("\t	 prepending new entry\n");
 			newEntry->next = frameList;					// newEntry will point to the old list as its next value, becoming the head
 			processTable[pid].usedFrames = newEntry;	// of the process' new list! i.e. Prepended
 		}
 	}	
-	printf("\tFrame stored in local list for process %d\n", pid);
 	return (newEntry != NULL);
 }
 
@@ -339,17 +341,7 @@ Boolean removeUsedFrame(int frameNo, unsigned page, unsigned pid) {
 	return FALSE;	// Wenn der gesuchte Eintrag nicht gefunden ist,  FALSE zurückliefern
 }
 
-Boolean allocateOnStart(const int initFrames, unsigned pid)
-/*	Allocates a constant amount of frames to a process
-	TODO: What happends when there are < intiFrames free? 
-	TODO: Portected 4 free frames*/
-{
-	for (int i = 0; i < initFrames; i++) {
-		int frame = getEmptyFrame();
-		movePageIn(pid, i, frame); 
-	}
-	return TRUE;
-}
+
 
 // hier list ist gleich der usedFrameList eines Prozesses, wird von der funktion pageReplacement übergeben
 frameList_t sortUsedFrameList(const unsigned char point, frameList_t list)
@@ -364,9 +356,7 @@ frameList_t sortUsedFrameList(const unsigned char point, frameList_t list)
 	wird dieses Algorithmus nicht erkennen welche Rahmen erst in einem Timer-
 	Interval referenziert wurde.*/
 {
-	printf("\tSorting... \n");
 	if (list == NULL || list->next == NULL) {
-		printf("\tThe list passed to the function is NULL... Returning Null\n");
 		return list;
 	}	// spezialfälle: nur ein Eintrag in der Liste oder Liste ist leer
 	// sublists OR buckets
@@ -397,12 +387,12 @@ frameList_t sortUsedFrameList(const unsigned char point, frameList_t list)
 		}
 		iterator = iterator->next;
 	}
-	if (onesLast->next != NULL) {	// sichern dass die Sublisten auf Null endet
+	/*if (onesLast->next != NULL) {	// sichern dass die Sublisten auf Null endet
 		onesLast->next = NULL;		// hier wird's Warnungen gegeben. da onesLast und zeroesLast immer auf NULL zeigen sollten. 
 	}								// kann eig. ausgelassen, aber für die Sicherheit
 	if (zeroesLast->next != NULL) {
 		zeroesLast->next = NULL;
-	}
+	}*/
 	if (point >> 1) {   // Rekrusive aufruf der Funktion, wobei die Nächste Bitstelle überprüft wird
 		frameList_t lhs = sortUsedFrameList(point >> 1, zeroes);
 		frameList_t rhs = sortUsedFrameList(point >> 1, ones);
@@ -485,30 +475,26 @@ Boolean updatePageEntry(unsigned pid, action_t action)
 /* Returns TRUE on success ans FALSE on any error							*/
 // *** This must be extended for advences page replacement algorithms ***
 {
-	processTable[pid].pageTable[action.page].referenced = TRUE;  // Necessary at this stage?
-	processTable[pid].pageTable[action.page].agingVal |= 0x80;	// as the page is referenced, set the Left most bit to 1
+	processTable[pid].pageTable[action.page].referenced = TRUE;  
+	// processTable[pid].pageTable[action.page].agingVal |= 0x80;	// sofort LMB nach 1 setzten? 
 	if (action.op == write)
 		processTable[pid].pageTable[action.page].modified = TRUE;
 	return TRUE; 
 }
 
 
-
-// ALL THIS DOES IS CALL RETURN THE FRAME TO BE REMOVED 
-// THIS STILL HAS NOT DONE WHAT ITS SUPPOSED TO DO!!!!!
 Boolean pageReplacement(unsigned* outPid, unsigned* outPage, int* outFrame)
 /* ===== The page replacement algorithm								======	*/
-/*	In the initial implementation the frame to be cleared is chosen
-	globaly and randomly, i.e. a frame is chosen at random regardless of the
-	process that is currently usigt it.
-	The values of pid and page number passed to the function may be used by
-	local replacement strategies */
-	/* OUTPUT: */
-	/*	The frame number, the process ID and the page currently assigned to the
-		frame that was chosen by this function as the candidate that is to be
-		moved out and replaced by another page is returned via the call-by-
-		reference parameters.
-		Returns TRUE on success and FALSE on any error							*/
+/*  Occurs due to a page fault, when there are no free frames in memory.
+	This function will first sort the list of the frames a process		
+	currently occupies, via sortUsedFrameList. Once sorted, this process
+	will select the frist frame in the usedFrameList for eviction	*/
+/*	OUTPUT: 
+	The frame number, the process ID and the page currently assigned to the
+	frame that was chosen by this function as the candidate that is to be
+	moved out and replaced by another page is returned via the call-by-
+	reference parameters.
+	Returns TRUE on success and FALSE on any error							*/
 {
 	Boolean found = FALSE;		// flag to indicate success
 	// just for readbility local copies ot the passed values are used:
@@ -517,39 +503,10 @@ Boolean pageReplacement(unsigned* outPid, unsigned* outPage, int* outFrame)
 	int frame = *outFrame;
 
 	printf("\tCalling sort for the pages of process %d\n", pid);
-	frameList_t list = processTable[pid].usedFrames; // pass the list of locally used frames REE THIS PID ISNT THE PID OF THE PROCESS TO BE REMOVED!!
-
-	if (list == NULL) // falls der Prozess noch keinen Seiten im Speicher hat
-	{
-		printf("\tusedFrameList empty, Process must not yet have frames assigned...\n");
-		logGeneric("MEM: Choosing a frame randomly, this must be improved");
-		frame = rand() % MEMORYSIZE; // choses a frame by random -> outFrame should be found via rbits
-		pid = 0; page = 0;
-		do
-		{
-			pid++;
-			if ((processTable[pid].valid) && (processTable[pid].pageTable != NULL))
-				for (page = 0; page < processTable[pid].size; page++)
-					if (processTable[pid].pageTable[page].frame == frame) {
-						found = TRUE;
-						break;
-					}
-		} while ((!found) && (pid < MAX_PROCESSES));
-		return found;
-	}
-
-	sortUsedFrameList(0x80, list); // sort the list of used frames of the process
-
-	/*	die pid gerade gegeben ist die PID die Prozess der auf seine Seite referernzieren
-		problem dabei ist, dass wir die SEITE verdrängen muss, die noch nicht eingelagert sind
-		(ODER)
-		wir sichern dass bei initiialisierung, alle Prozessen etwas bekommt. d.h. aber wenn neuer
-		User Process erstellt wird, demselbene Problem aufgetreten wurde
-		(IDEE)
-		NOCH EINE LISTE:
-		Die über die Info alle eingelagerten Seiten im Speicher kennt
-		dann wird nach bedarf dieses Sortiert und seite verdrängt....*/
-		// prepare returning the resolved location for replacement
+	frameList_t victim = sortUsedFrameList(0x80, processTable[pid].usedFrames); // sort the list of used frames of the process
+	frame = victim->frame;
+	printf("\tvictim found at frame: %d\n", frame);
+	found = TRUE;
 	if (found)
 	{	// assign the current values to the call-by-reference parameters
 		(*outPid) = pid;
@@ -558,71 +515,4 @@ Boolean pageReplacement(unsigned* outPid, unsigned* outPage, int* outFrame)
 	}
 	return found;
 }
-	/*
-	threshList_t sortThresh(threshList_t list) {
-		
-	}*/
-	
-	// the parameter list one of 3 possible threshLists : lowThresh, highThresh or backUpThresh
-	// the respective counter of said list is also given via listsize: lowThreshCounter, and so on
-	Boolean addToThreshList(int pid, threshList_t list, unsigned* listsize) 
-{
-	if (pid <= 0 || pid > MAX_PROCESSES) return FALSE; 
-	threshList_t newEntry = malloc(sizeof(threshList_t)); // create a new list entry	
-	if (newEntry != NULL) {		
-		newEntry->pid = pid;	// set the pid of the new list entry
-		if (list == NULL) {		// special-case: list is empty
-			list = newEntry;	// point the list to teh new entry
-			*listsize += 1;			// add to the count of the given list 
-		}
-		else {					// normal-case: prepend the newEntry to the list
-			threshList_t copy = list; // create a copy which points to the old lis copy = ABCD new = P
-			newEntry->next = copy; // append the old list to the newEntry P->ABCD
-			list = newEntry;	// update the pointer to reference the updated ThreshList ABCD -> PABCD
-			*listsize += 1;
-		}
-	}
-	return TRUE;
 
-	// A B C -> 
-}
-	// the parameter list one of 3 possible threshLists : lowThresh, highThresh or backUpThresh
-	// the respective counter of said list is also given via listsize: lowThreshCounter, and so on
-	Boolean removeFromThreshList(int pid, threshList_t list, unsigned* listsize) 
-{
-	if (pid <= 0 || pid > MAX_PROCESSES) return FALSE;
-	int i = 0;
-	threshList_t iterator = list;		// a copy of the pointer to the given list which will be used as an iterator
-	while (i <= *listsize && iterator != NULL) {		// itreate throught the given list
-		if (iterator->pid == pid) {		// special-case: the first entry is the wanted entry
-			list = list->next;		// make next entry as the list's head
-			free(iterator);			// free memory allocated to the list entry
-			*listsize -= 1;
-			return TRUE;
-		}
-		else if (iterator->next->pid == pid) {			// when the correct entry is found
-			threshList_t toRemove = list->next;		// point to the entry to be removed
-			iterator->next = iterator->next->next;	// connect the prior and next entries
-			free(toRemove);							// free memory allocated to the list entry 
-			*listsize -= 1;
-			return TRUE;							// return true, ending the function
-		}
-		i++;
-	}
-	return FALSE; // if the list is iterated through, return false
-}
-	// process from lowThreshList donates frames to highThreshList
-	Boolean reallocateMemory(int donorPid, int receiverPid, unsigned amount) {
-		
-		for (int i = 0; i < amount; i++) {
-			movePageOut(donorPid, , ); // wie bekommt man welche page und welche frame
-			movePageIn(receiverPid, ,);	
-		}
-		return TRUE;
-	}
-
-
-	unsigned calcMem(int pid) {
-
-	
-	}

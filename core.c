@@ -45,10 +45,8 @@ Boolean coreLoop(void)
 
 	do {	// loop until batch is complete
 		pMemoryEvent = sim_ReadNextEvent(&memoryEvent);
-		if (pMemoryEvent == NULL) {
-			printf("An Error has occured: Event is NULL"); // TODO improve on some error message
-			break;			// on error exit the simulation loop 
-		}
+		if (pMemoryEvent == NULL) break;			// on error exit the simulation loop 
+		// advance time and run timer event handler if needed
 		// advance time and run timer event handler if needed
 		for (unsigned i = (systemTime / TIMER_INTERVAL); i < (pMemoryEvent->time / TIMER_INTERVAL); i++)
 		{
@@ -64,6 +62,8 @@ Boolean coreLoop(void)
 			printf("%6u : PID %3u : Started\n", systemTime, pMemoryEvent->pid);
 			// allocate the initial number of frames for the process
 			createPageTable(pMemoryEvent->pid);
+			// initFrames proportional to process size?
+			// int proportion = framestogive();
 			allocateOnStart(4, pMemoryEvent->pid); // 4 frames here could be a global variable instead, that we can later change 
 			break;
 		case end:
@@ -71,7 +71,7 @@ Boolean coreLoop(void)
 			// free all frames used by the process
 			deAllocateProcess(pMemoryEvent->pid);
 			break;
-		case read: // doesnt read also need to cause a page update? 
+		case read:
 		case write:
 			// event contains the page in use
 			logPidMemAccess(pMemoryEvent->pid, pMemoryEvent->action);
