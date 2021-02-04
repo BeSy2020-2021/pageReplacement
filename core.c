@@ -89,6 +89,5 @@ Boolean coreLoop(void)
 		if (frame <0)	break;				// on error exit the simulation loop 
 		logMemoryMapping();			
 	} while (!batchCompleted && !simError);
-	
 	return batchCompleted; 
 }

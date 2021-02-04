@@ -11,13 +11,17 @@ unsigned emptyFrameCounter;						// number of empty Frames
 frameList_t emptyFrameList = NULL;				// the beginning of EMPTY framelist
 frameListEntry_t *emptyFrameListTail = NULL;	// end of the EMPTY frame list
 
-/* list of backup frames, only to be used in desperation*/
+/*
+// list of backup frames, only to be used in desperation
 unsigned backupFrameCoutner;	// a counter to ensure there are always x amount of frames as backup
 frameList_t backupList = NULL;	
+*/
 
+/*
 unsigned lowThreshCounter;		// um gr鲞er der List zu ermittlen
 unsigned backupCounter;			
 unsigned highThreshCounter;
+*/
 
 /* ------------------------------------------------------------------------ */
 /*		               Declarations of local helper functions				*/
@@ -36,9 +40,10 @@ int getEmptyFrame(void);
 	a page replacement algorithm must be called to free evict a page and		
 	thus clear one frame */
 
+/*
 Boolean storeBackupFrame(int frame);
 /* adds a frame to a pool of backup frames*/
-
+*/
 
 Boolean storeUsedFrame(unsigned frameNo, unsigned page, unsigned pid);
 /*	Einlagern der Frame, und zugeh鰎igen information in der List alle der	
@@ -101,8 +106,7 @@ Boolean initMemoryManager(void)
 	printf("Initializing memory manager...");
 	// mark all frames of the physical memory as empty 
 	for (int i = 0; i < MEMORYSIZE; i++) {
-		if (i < 4) storeBackupFrame(i);
-		else storeEmptyFrame(i);
+		storeEmptyFrame(i);
 	}
 	printf("...initialized");
 	return TRUE;
@@ -186,15 +190,14 @@ Boolean deAllocateProcess(unsigned pid)
 Boolean allocateOnStart(const int initFrames, unsigned pid)
 /*	Allocates a proportional amount of frames to a process
 	TODO: What happends when there are < ttlFrames free? 
-		loop: free one frame from the backup list, if the total is not enough free another, until backup is empty
-		if backup is empty and still not enough frames, kill the waiting process
+		Process will not start
 	process*/
 {
 	int fraction = processTable[pid].size * 0.2; // 20% of the size will be added to the initial value of 4 frames
 	int ttlFrame = initFrames + fraction; 
 	if (ttlFrame > emptyFrameCounter) {
+		printf("\t !!Speicher nicht genug, prozess %d wird nicht gestartet\n", pid);
 		return FALSE;
-		printf("Speicher nicht genug, prozess %d wird nicht gestartet", pid);
 	}
 	for (int i = 0; i < ttlFrame; i++) {
 		int frame = getEmptyFrame();
@@ -257,47 +260,6 @@ int getEmptyFrame(void)
 	return emptyFrameNo; 
 }
 
-Boolean storeBackupFrame(int frame) 
-/* Appends a framListEntry to a list of backup frames*/
-{
-	if (frame < -1) return FALSE;
-	frameList_t newEntry = NULL;
-	newEntry = malloc(sizeof(frameListEntry_t));
-	if (newEntry != NULL)
-	{
-		newEntry->frame = frame;
-		newEntry->residentPage = NULL;
-		newEntry->next = NULL;
-		newEntry->used = FALSE;
-		if (backupList == NULL) {
-			backupList = newEntry;
-			backupFrameCoutner++;
-		}
-		else {
-			backupList->next = newEntry;
-			backupFrameCoutner++;
-		}
-	}
-	return (newEntry != NULL); 
-}
-// TODO improve
-int getBackupFrame(void) 
-/*	returns the number of an empty frame from the backup list 
-	ONLY used when there are no frames can be freed from the
-	processes on lowThreshList */
-{
-	frameListEntry_t* toBeDeleted = NULL;
-	int emptyFrameNo = -1;
-	if (backupList == NULL) return -1;	// no empty frame exists
-	emptyFrameNo = backupList->frame;	// get number of empty frame
-	// remove entry of that frame from the list
-	toBeDeleted = backupList;
-	backupList = backupList->next;
-	free(toBeDeleted);						// instead of freeing call move page in
-	emptyFrameCounter--;					// one empty frame less
-	return emptyFrameNo;
-}
-
 Boolean storeUsedFrame(unsigned frameNo, unsigned page, unsigned pid) {
 	printf("\tStoring page in ussedFrameList of process %d...\n", pid);
 	frameList_t frameList = processTable[pid].usedFrames;	// a copy of the pointer we use to access the local usedFrameList
@@ -342,8 +304,7 @@ Boolean removeUsedFrame(int frameNo, unsigned page, unsigned pid) {
 }
 
 
-
-// hier list ist gleich der usedFrameList eines Prozesses, wird von der funktion pageReplacement 黚ergeben
+/* Geschrieben von Cheang Yi Cherng*/
 frameList_t sortUsedFrameList(const unsigned char point, frameList_t list)
 /*	Diese Sortierung funktionert nach der Prinzip eines Radix sort, d.h:
 	es evaluiert jeder Aging Value nicht nach dem gesamten Wert sondern nach
@@ -359,16 +320,16 @@ frameList_t sortUsedFrameList(const unsigned char point, frameList_t list)
 	if (list == NULL || list->next == NULL) {
 		return list;
 	}	// spezialf鋖le: nur ein Eintrag in der Liste oder Liste ist leer
-	// sublists OR buckets
-	frameList_t zeroes = NULL;		//where LSB = 0, the LSB will shift one place right with each recursion e.g 񾷞00 0000 -> 0񾷞0 0000
-	frameList_t zeroesLast = NULL;	// 
-	frameList_t ones = NULL;		//
-	frameList_t onesLast = NULL;	//
-	frameList_t iterator = list;
-	while (iterator != NULL) {
-		if ((iterator->residentPage->agingVal & point)) {
-			if (ones == NULL) {		// Erste eintrag der Sublist wo LMB = 1
-				ones = iterator;
+	// sublists OR buckets erstellen
+	frameList_t zeroes = NULL;		// die Subliste wo die gepr黤te Bit 0 ist
+	frameList_t zeroesLast = NULL;	// Zeiger auf die Tail der oberige Liste
+	frameList_t ones = NULL;		// die Subliste wo die gepr黤te Bit 1 ist
+	frameList_t onesLast = NULL;	// Zeiger auf die Tail der oberige Liste
+	frameList_t iterator = list;	// copy der Zeiger auf die Liste, wird als Iterator benutzt
+	while (iterator != NULL) {		
+		if ((iterator->residentPage->agingVal & point)) { // z.b (0101 0001) & (1000 0000) = 0 -n鋍hsterekursion-> (0101 0001) & (0100 0000) = 1
+			if (ones == NULL) {		// Erste eintrag der Sublist wo gepr黤te Bit = 1
+				ones = iterator;	
 				onesLast = iterator;
 			}
 			else {
@@ -376,7 +337,7 @@ frameList_t sortUsedFrameList(const unsigned char point, frameList_t list)
 				onesLast = iterator;
 			}
 		} else {
-			if (zeroes == NULL) {	// Erste eintrag der Sublist wo LMB = 0
+			if (zeroes == NULL) {	// Erste eintrag der Sublist wo gepr黤te Bit = 0
 				zeroes = iterator;
 				zeroesLast = iterator;
 			}
