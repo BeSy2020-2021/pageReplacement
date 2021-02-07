@@ -20,7 +20,7 @@
 #define MAX_PROCESSES (unsigned)100 
 
 // Size of the physical memory available to user processes in frames
-#define MEMORYSIZE 17
+#define MEMORYSIZE 8
 
 // Period of the timer. on all multiples of this value the timer ISR ist called by the simulation
 #define TIMER_INTERVAL 50
@@ -31,9 +31,8 @@
 // name of the file with the simulation run an empty file name switches to random event stimulus
 #define RUN_FILENAME "run.txt"
 
-//	Grenzwerte für die dynamische Allokierung
-#define LOW_THRESH 5
-#define HIGH_THRESH 15
+// definiert mindest anzahl an Rahmen, die ein Prozess beim Start bekommt
+#define BASE_FRAMES 4
 
 /* ----------------------------------------------------------------	*/
 /* Define global variables that will be visible in all sourcefiles	*/

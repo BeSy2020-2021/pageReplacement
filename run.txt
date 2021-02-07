@@ -3,18 +3,35 @@
 # possible entires for actions are: 
 #	S for start
 # 	E for end i.e. termination of the process, yielding in freeing all occupied frames
+# <time> <PID> <action> <action> ...          
+# for each point in time a list of actions for the same process may be specified
+# possible entires for actions are: 
+#	S for start
+# 	E for end i.e. termination of the process, yielding in freeing all occupied frames
 #	Rx use of the page with the given number x for read-access
 #	Wx use of the page with the given number x for read-access
 # file must be ordered by ascending time stamps
 10 1 S 
-10 1 R0 
-10 1 W1 
 20 2 S 
-20 2 R0 
-25 2 W7
-60 4 S 
-60 4 R0
-70 1 R0
-70 2 W0
-80 4 W1
-100 1 E
+25 1 E
+30 2 R0
+30 2 W1
+40 1 S
+60 1 R0
+65 1 E
+65 2 E
+70 3 S
+80 3 R0
+80 3 R1
+90 3 R0
+90 3 R3
+90 3 W2
+100 3 R2
+120 3 W7
+140 1 S
+150 3 E
+170 4 S
+180 4 W6
+190 1 E
+200 4 E
+220 5 S

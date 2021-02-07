@@ -73,8 +73,8 @@ typedef struct pageTableEntry_struct
 typedef struct frameListStruct
 {
 	int frame;						
-	Boolean used;					//	markiert, ob der Rahmen in Benutzung ist
-	page_t* residentPage;
+	//Boolean used;					//	markiert, ob der Rahmen in Benutzung ist
+	page_t* residentPage;			// zeigt auf die Seite, die im Rahmen gespeichert ist
 	struct frameListStruct* next;	
 } frameListEntry_t;
 
@@ -96,16 +96,8 @@ typedef struct PCB_struct
 	status_t status;			/* NOT USED ANYWHERE DELETE BEFORE ABGABE*/
 	simInfo_t simInfo;			/* NOT USED ANYWHERE DELETE BEFORE ABGABE*/
 	unsigned size;				// size of logical process memory in pages
-	page_t *pageTable;		
-
+	page_t *pageTable;			// Seitentabelle
 	frameList_t usedFrames;		// Zeigt zum head der zum Prozess gehörigen usedFrames Liste	
-
-	unsigned faultCount;		//	zählt die Seitenfehler des Prozess
-	unsigned timeSince;			//	Zeit seit letztem Seitenfehler
-
-	Boolean overFaultCeil;		// flags to show the process has had many page faults in the last x intervals
-	Boolean underFaultFloor;	// flags to show the process has had very little page faults in the last x intervals
-
 } pcb_t;
 
 /* data type for the possible actions wrt. memory usage by a process		*/
